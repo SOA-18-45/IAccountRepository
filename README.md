@@ -1,6 +1,13 @@
 IAccountRepository
 ==================
 
+Twórcy
+---
+ -
+ -
+ 
+Opis
+---
 Serwis służący do zakładania konta danego klienta.
 
 Metody:
