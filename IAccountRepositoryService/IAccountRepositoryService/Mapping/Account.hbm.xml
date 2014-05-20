@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"
+                   assembly="IAccountRepositoryService"
+                   namespace="IAccountRepositoryService.Domain">
+
+  <class name="Account">
+    <id name="Id">
+      <generator class="guid" />
+    </id>
+    <property name="ClientId" />
+    <property name="AccountNumber"/>
+    <property name="Money" />
+    <property name="Type" />
+    <property name="Percentage" />
+    <property name="StartDate" />
+    <property name="EndDate" />
+  </class>
+
+</hibernate-mapping>
