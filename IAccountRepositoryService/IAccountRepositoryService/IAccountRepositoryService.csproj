@@ -69,6 +69,7 @@
   <ItemGroup>
     <EmbeddedResource Include="hibernate.cfg.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Mapping\Account.hbm.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

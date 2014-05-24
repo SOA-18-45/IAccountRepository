@@ -8,9 +8,8 @@
       NHibernate.Driver.MySqlDataDriver
     </property>
     <property name="connection.connection_string">
-      <!--Server=localhost;Database=soa;User ID=root;Password=zaq!2wsx;-->
-      <!--Server=sql2.freemysqlhosting.net;Database=sql238746;User ID=sql238746;Password=dT3*fI4!;-->
-      Server=sql3.freemysqlhosting.net;Database=sql340817;User ID=sql340817;Password=lV2!jJ4*;
+      <!--Server=localhost;Database=soa;User ID=root;Password=zaq!2wsx;--> <!--właściwa-->
+      Server=sql3.freemysqlhosting.net;Database=sql340817;User ID=sql340817;Password=lV2!jJ4*; <!--testowa-->
     </property>
     <property name="dialect">
       NHibernate.Dialect.MySQL5Dialect
