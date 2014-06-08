@@ -12,12 +12,13 @@ using System.Timers;
 
 namespace IAccountRepositoryService
 {
-    class Program//get all accounts
+    class Program
     {
         private const string serviceAddress = "net.tcp://localhost:50000/IAccountRepository";
-        private const string serviceRepositoryAddress = "net.tcp://192.168.0.109:50000/IServiceRepository";
+        private const string serviceRepositoryAddress = "net.tcp://192.168.0.102:50000/IServiceRepository";
         private const string serviceName = "IAccountRepository";
         private const string ipAddress = "192.168.0.114"; //IP komputera w sali, localhost do testów
+        private const string binding = "net.tcp";
         private const bool test = true;
         private static IServiceRepository repository { get; set; }
         private static IClientRepository clientService { get; set; }
@@ -80,52 +81,63 @@ namespace IAccountRepositoryService
         {
             try
             {
+                //Console.WriteLine("isAlive before");
                 repository.isAlive(serviceName);
-                //Logger.log.Info("Alive Success");
+                //Console.WriteLine("isAlive success");
             }
             catch (Exception ex)
             {
                 Logger.log.Error("IsAlive Error - Message: " + ex.Message);
+                Console.WriteLine("IServiceRepository isAlive failed");
                 Reactivate();
             }
         }
 
         private static void Reactivate()
         {
-            ChannelFactory<IServiceRepository> cf = new ChannelFactory<IServiceRepository>(new NetTcpBinding(SecurityMode.None), serviceRepositoryAddress);
-            repository = cf.CreateChannel();
-            Logger.log.Info("Connection with IServiceRepository completed!");
-            Console.WriteLine("Connected with IServiceRepository");
+            try
+            {
+                ChannelFactory<IServiceRepository> cf = new ChannelFactory<IServiceRepository>(new NetTcpBinding(SecurityMode.None), serviceRepositoryAddress);
+                repository = cf.CreateChannel();
+                Logger.log.Info("Connection with IServiceRepository completed!");
+                Console.WriteLine("Connected with IServiceRepository");
 
-            repository.registerService(serviceName, serviceAddress.Replace("localhost", ipAddress));
-            Logger.log.Info("Service registered!");
+                repository.registerService(serviceName, serviceAddress.Replace("localhost", ipAddress), binding);
+                Logger.log.Info("Service registered!");
 
 
-            //Send info for IServiceRepository
-            AliveSignal();
-            Logger.log.Info("Alive");
+                //Send info for IServiceRepository
+                AliveSignal();
+                Logger.log.Info("Alive");
+            }
+            catch (Exception ex)
+            {
+                System.Threading.Thread.Sleep(1000);
+                Console.WriteLine("Reactivate failed");
+                //Reactivate();
+            }
         }
 
 
         [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, IncludeExceptionDetailInFaults = true)]
         public class AccountRepository : IAccountRepository
         {
-            public string CreateAccount(Guid clientId, AccountDetails details)
+            public string CreateAccount(string pesel, AccountDetails details)
             {
                 string clientRepositoryAddress = String.Empty;
                 try
                 {
                     if (!test)
-                        clientRepositoryAddress = repository.getServiceAddress("IClientRepository");
+                        clientRepositoryAddress = repository.getServiceAddress("IClientRepository", binding);
                     if (test || !String.IsNullOrEmpty(clientRepositoryAddress))
                     {
-                        ServiceClient info;
+                        ClientRepo info = new ClientRepo();
                         if (!test)
                         {
                             ChannelFactory<IClientRepository> cf2 = new ChannelFactory<IClientRepository>(new NetTcpBinding(SecurityMode.None), clientRepositoryAddress);
                             clientService = cf2.CreateChannel();
 
-                            info = clientService.GetClientInformationById(clientId);
+                            //info = clientService.GetClientInformationByPesel(pesel);
                         }
 
                         if (test || info.IdClient != Guid.Empty)
@@ -135,7 +147,67 @@ namespace IAccountRepositoryService
                                 using (ITransaction transaction = session.BeginTransaction())
                                 {
                                     Account account = new Account(details);
-                                    account.ClientId = clientId;
+                                    account.ClientId = test ? new Guid() : info.IdClient;
+
+                                    string number = "";
+
+                                    bool flag = false;
+                                    while (!flag)
+                                    {
+                                        Random rnd = new Random();
+                                        int nr = rnd.Next(100000000, 999999999);
+                                        number = String.Format("{0}{0}{1}", nr.ToString(), nr.ToString().Substring(0, nr.ToString().Length - 1));
+                                        AccountDetails dt = GetAccountInformation(number);
+                                        if (dt == null) flag = true;
+                                    }
+
+                                    account.AccountNumber = number;
+
+                                    session.Save(account);
+                                    transaction.Commit();
+
+                                    Logger.log.Info("CreateAccount Completed - Account: " + number);
+                                    return account.AccountNumber;
+                                }
+                            }
+                        }
+                    }
+                    Logger.log.Error("CreateAccount Failed");
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    Logger.log.Error("CreateAccount Error - Message: " + ex.Message);
+                    return null;
+                }
+            }
+
+            public string CreateAccountByName(string firstName, string lastName, AccountDetails details)
+            {
+                string clientRepositoryAddress = String.Empty;
+                try
+                {
+                    if (!test)
+                        clientRepositoryAddress = repository.getServiceAddress("IClientRepository", binding);
+                    if (test || !String.IsNullOrEmpty(clientRepositoryAddress))
+                    {
+                        ClientRepo info = new ClientRepo();
+                        if (!test)
+                        {
+                            ChannelFactory<IClientRepository> cf2 = new ChannelFactory<IClientRepository>(new NetTcpBinding(SecurityMode.None), clientRepositoryAddress);
+                            clientService = cf2.CreateChannel();
+
+                            info = clientService.GetClientInformationByName(firstName, lastName);
+                        }
+
+                        if (test || info.IdClient != Guid.Empty)
+                        {
+                            using (ISession session = NHibernateHelper.OpenSession())
+                            {
+                                using (ITransaction transaction = session.BeginTransaction())
+                                {
+                                    Account account = new Account(details);
+                                    account.ClientId = test ? new Guid() : info.IdClient;
 
                                     string number = "";
 
